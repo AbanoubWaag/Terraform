@@ -1,25 +1,46 @@
-name: Configure  AWS Credentials
-uses: aws-actions/configure-aws-credentials@v1
-with:
-  aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-  aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-  aws-region: eu-west-1
+name: Terraform CI
 
- uses: hashicorp/setup-terraform@v1
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "Terraform action (plan/apply/destroy)"
+        required: true
+        default: "plan"
 
- -name: Infra initiate
- run: |
-    cd infra
-    terraform init
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
 
- 
- -name: terraform apply
- if: ${{ inputs.action == 'apply'  }}
- run: terraform apply -auto-approve
- -name: terraform plan
- if: ${{ inputs.action == 'plan'  }}
- run: terraform plan
- -name: terraform destroy
- if: ${{ inputs.action == 'destroy'  }}
- if: ${{ inputs.action == 'destroy'  }}
- run: terraform destroy -auto-approve
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: eu-west-1
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Init
+        run: terraform init
+        working-directory: infra
+
+      - name: Terraform Plan
+        if: ${{ inputs.action == 'plan' }}
+        run: terraform plan
+        working-directory: infra
+
+      - name: Terraform Apply
+        if: ${{ inputs.action == 'apply' }}
+        run: terraform apply -auto-approve
+        working-directory: infra
+
+      - name: Terraform Destroy
+        if: ${{ inputs.action == 'destroy' }}
+        run: terraform destroy -auto-approve
+        working-directory: infra
